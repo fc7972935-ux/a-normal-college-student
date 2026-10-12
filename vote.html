@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+<link rel="icon" href="data:," />
+<meta name="theme-color" content="#06101D" />
+<title>课堂投票 · 电子信息战</title>
+<style>
+:root{
+  --bg-0:#06101D; --bg-1:#0A1B2E; --panel:rgba(18,36,58,.8); --line:#18334A;
+  --accent:#48D8E8; --blue:#58A6FF; --warn:#FFC857; --ink:#F4F8FB; --muted:#AFC3D4; --muted-2:#6d86a0;
+  --mono:ui-monospace,"SF Mono",Menlo,monospace;
+  --sans:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{
+  margin:0;min-height:100vh;font-family:var(--sans);color:var(--ink);
+  background:radial-gradient(120% 70% at 80% 0%,#123347 0%,transparent 60%),
+             linear-gradient(165deg,#0A1B2E 0%,#06101D 70%);
+  padding:20px 18px 34px;display:flex;flex-direction:column;gap:16px;
+}
+.head{display:flex;align-items:center;gap:9px;font-family:var(--mono);font-size:11px;letter-spacing:.18em;color:var(--muted-2);text-transform:uppercase}
+.head i{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 9px var(--accent);display:block}
+.q{font-size:21px;font-weight:600;line-height:1.45}
+.hint{font-size:13px;color:var(--muted-2);margin-top:-6px}
+.status{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:11.5px;color:var(--muted-2);flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:99px;border:1px solid var(--line)}
+.pill.live{color:var(--accent);border-color:rgba(72,216,232,.45);background:rgba(72,216,232,.1)}
+.pill.shut{color:var(--warn);border-color:rgba(255,200,87,.42);background:rgba(255,200,87,.08)}
+.pill i{width:6px;height:6px;border-radius:50%;background:currentColor;display:block}
+.opt{
+  width:100%;text-align:left;display:flex;align-items:center;gap:13px;margin-bottom:10px;
+  background:var(--panel);border:1px solid var(--line);border-radius:13px;color:var(--ink);
+  font-family:inherit;font-size:17px;padding:18px 16px;cursor:pointer;transition:.15s
+}
+.opt:active{transform:scale(.985)}
+.opt.picked{border-color:var(--accent);background:rgba(72,216,232,.14);box-shadow:0 0 0 1px rgba(72,216,232,.35)}
+.opt .k{font-family:var(--mono);font-size:13px;color:var(--accent);border:1px solid rgba(72,216,232,.35);
+  border-radius:7px;min-width:30px;height:30px;display:grid;place-items:center;flex:none;background:rgba(72,216,232,.08)}
+.opt .t{flex:1}
+.opt .n{font-family:var(--mono);font-size:14px;color:var(--muted-2)}
+.opt:disabled{opacity:.72}
+.bars{margin-top:4px;display:flex;flex-direction:column;gap:11px}
+.bar{background:rgba(120,195,225,.08);border-radius:9px;overflow:hidden;position:relative;height:34px}
+.bar span.b{position:absolute;inset:0;width:0;background:linear-gradient(90deg,rgba(72,216,232,.5),rgba(88,166,255,.7));transition:width .5s cubic-bezier(.2,.7,.25,1)}
+.bar span.l{position:relative;display:flex;justify-content:space-between;align-items:center;height:100%;padding:0 13px;font-size:14px}
+.bar small{font-family:var(--mono);color:var(--muted)}
+.note{font-size:13px;color:var(--muted-2);line-height:1.75;border-left:2px solid var(--line);padding-left:11px}
+.done{
+  border:1px solid rgba(72,216,232,.4);background:rgba(72,216,232,.1);border-radius:13px;
+  padding:15px 16px;font-size:15px;line-height:1.6;margin-bottom:12px
+}
+.done b{color:var(--accent)}
+.foot{margin-top:auto;font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:#33506c;text-transform:uppercase;text-align:center;padding-top:10px}
+@media (min-width:560px){ body{max-width:560px;margin:0 auto} }
+</style>
+</head>
+<body>
+  <div class="head"><i></i><span>电子信息战 · 课堂投票</span></div>
+  <div class="q" id="q">正在载入题目…</div>
+  <div class="hint" id="hint"></div>
+  <div class="status">
+    <span class="pill" id="pill"><i></i><span id="pillTxt">连接中</span></span>
+    <span id="total">— 票</span>
+  </div>
+  <div id="opts"></div>
+  <div id="after"></div>
+  <div class="note" id="noteBox" style="display:none"></div>
+  <div class="foot" id="foot">扫码投票 · 请勿关闭本页</div>
+
+<script>
+/* ============================================================
+   两种后端，自动选择：
+   ① local —— 页面由本地服务提供时，用 /api/*（支持改票、实时同步）
+   ② cloud —— 页面托管在公网、电脑关着时，票数记在免费匿名计数器上
+   优先级：本地服务连得上就用本地；连不上且配了 ns 就转公网。
+   公网模式为了省请求：投票开放期间只读「开关」两个键，截止后才把票数读全，
+   截止后只偶尔复查一次（防止中途重新开放）。
+   ============================================================ */
+var CLOUD = { base:'https://abacus.jasoncameron.dev', ns:'' };   /* ns 由「发布公网版.py」写入 */
+var POLLS = {
+  q1:{ title:'不摧毁无人机，能否让它无法完成任务？', hint:'请扫码或举手选择', options:['能','不能','不确定'] },
+  q2:{ title:'未来更关键的是更大的功率，还是更快的决策？', hint:'请扫码或举手选择', options:['更大的功率','更快的决策','两者都关键'] }
+};
+var q = (location.search.match(/[?&]q=(q[12])/) || [, 'q1'])[1];
+var nsUrl = (location.search.match(/[?&]ns=([^&]+)/) || [])[1];
+if(nsUrl) CLOUD.ns = decodeURIComponent(nsUrl);
+var CID_KEY = 'ewclass.cid';
+function cid(){
+  try{
+    var v = localStorage.getItem(CID_KEY);
+    if(!v){ v = 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10); localStorage.setItem(CID_KEY, v); }
+    return v;
+  }catch(e){ return 'anon' + Math.random().toString(36).slice(2, 10); }
+}
+var myChoice = null, meta = null, finalState = null;
+var mode = null;                      /* local | cloud */
+var cloudRound = 0, cloudPhase = 'live';   /* live | final */
+
+function esc(s){ return String(s).replace(/[&<>]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]; }); }
+function myKey(){ return 'ewclass.cloud.' + CLOUD.ns + '.' + q + '.' + cloudRound; }
+function readMyChoice(){
+  if(mode === 'cloud'){
+    try{ var v = localStorage.getItem(myKey()); return (v === null) ? null : parseInt(v, 10); }catch(e){ return null; }
+  }
+  return myChoice;
+}
+function saveMyChoice(k){
+  myChoice = k;
+  if(mode === 'cloud'){ try{ localStorage.setItem(myKey(), String(k)); }catch(e){} }
+}
+
+/* ---------- 本地服务 ---------- */
+function api(pathname, opts){
+  return fetch(pathname, opts).then(function(r){
+    return r.json().then(function(j){ j.__status = r.status; return j; });
+  });
+}
+function pullLocal(){
+  return api('/api/state').then(function(j){
+    if(!j || !j.ok || !j.polls || !j.polls[q]) throw new Error('bad');
+    mode = 'local';
+    finalState = j.polls[q];
+    if(meta === null && finalState.meta) meta = finalState.meta;
+    myChoice = readMyChoice();
+    render();
+  });
+}
+
+/* ---------- 公网计数器 ---------- */
+function clUrl(kind, key){ return CLOUD.base + '/' + kind + '/' + CLOUD.ns + '/' + key + '?t=' + Date.now(); }
+/* 读失败要抛错（调用方保持上一帧），不要把网络抖动当成 0 票 */
+function clParse(t){
+  if(/not found/i.test(t)) return 0;
+  try{ var j = JSON.parse(t); if(j && typeof j.value === 'number') return j.value; }catch(e){}
+  throw new Error('bad counter read');
+}
+function clGet(key){
+  return fetch(clUrl('get', key), {cache:'no-store'})
+    .then(function(r){ return r.text(); })
+    .then(clParse);
+}
+/* 投票是"不能丢"的操作：遇到限流/抖动重试几次再放弃 */
+function clHit(key, tries){
+  tries = tries || 0;
+  return fetch(clUrl('hit', key), {cache:'no-store'})
+    .then(function(r){
+      return r.text().then(function(t){
+        if(r.ok && !/too many requests|error/i.test(t)) return true;
+        throw new Error(t.slice(0, 60));
+      });
+    })
+    .catch(function(){
+      if(tries < 3) return new Promise(function(res){ setTimeout(res, 1200 + tries * 800); }).then(function(){ return clHit(key, tries + 1); });
+      return false;
+    });
+}
+function cloudOpenState(oc){
+  return (oc[0] > oc[1]) ? true : (oc[1] > oc[0] ? false : (q === 'q1'));
+}
+function cloudPullCounts(){
+  var p = 'r' + cloudRound;
+  return Promise.all([q+p+'a', q+p+'b', q+p+'c'].map(clGet)).then(function(c){
+    myChoice = readMyChoice();
+    meta = POLLS[q];
+    var total = c[0]+c[1]+c[2];
+    finalState = { open:false, counts:c, total:total, meta:meta };
+    cloudPhase = 'final';
+    render();
+    document.getElementById('foot').textContent = '公网投票 · 投票已截止，上面是最终票数';
+  });
+}
+function cloudPull(){
+  if(!CLOUD.ns) return Promise.resolve();
+  var openKey = q + 'open', closeKey = q + 'close';
+  if(cloudPhase === 'live'){
+    return Promise.all([openKey, closeKey].map(clGet)).then(function(oc){
+      myChoice = readMyChoice();
+      meta = POLLS[q];
+      var open = cloudOpenState(oc);
+      finalState = finalState || { counts:[0,0,0], total:0, meta:meta };
+      finalState.open = open; finalState.meta = meta;
+      render();
+      document.getElementById('foot').textContent = '公网投票 · 电脑关机后本页照样能打开';
+      if(!open) return cloudPullCounts();          /* 刚被截止 → 把票数读全 */
+    }).catch(function(){
+      document.getElementById('pillTxt').textContent = '网络异常';
+      document.getElementById('foot').textContent = '公网计票连不上（按大屏提示改用举手）';
+    });
+  }
+  /* 已截止：偶尔复查开关，若重新开放就回到 live */
+  return Promise.all([openKey, closeKey].map(clGet)).then(function(oc){
+    if(cloudOpenState(oc)){ cloudPhase = 'live'; finalState.open = true; render(); }
+  }).catch(function(){});
+}
+function pull(){
+  if(mode === 'cloud') return cloudPull();
+  return pullLocal().catch(function(){
+    if(CLOUD.ns){ mode = 'cloud'; cloudPhase = 'live'; return cloudPull(); }
+    document.getElementById('pillTxt').textContent = '连接失败';
+    document.getElementById('foot').textContent = '连不上投票服务：请检查 WiFi 或刷新页面';
+  });
+}
+
+/* ---------- 渲染 ---------- */
+function render(){
+  var st = finalState; if(!st || !meta) return;
+  document.getElementById('q').textContent = meta.title;
+  document.getElementById('hint').textContent = meta.hint || '';
+  var pill = document.getElementById('pill'), pt = document.getElementById('pillTxt');
+  pill.className = 'pill ' + (st.open ? 'live' : 'shut');
+  pt.textContent = st.open ? '投票开放中' : '投票已截止';
+  document.getElementById('total').textContent = '共 ' + (st.total || 0) + ' 票';
+
+  var box = document.getElementById('opts');
+  if(st.open){
+    var locked = (mode === 'cloud' && myChoice !== null);     /* 公网只有自增，投完不能改 */
+    var h = '';
+    meta.options.forEach(function(o, k){
+      h += '<button class="opt' + (myChoice === k ? ' picked' : '') + '" data-k="' + k + '"' +
+           (locked ? ' disabled' : '') + '><span class="k">' + (k+1) + '</span>' +
+           '<span class="t">' + esc(o) + '</span>' +
+           (myChoice === k ? '<span class="n">已选</span>' : '') + '</button>';
+    });
+    box.innerHTML = h;
+    Array.prototype.forEach.call(box.querySelectorAll('.opt'), function(b){
+      b.addEventListener('click', function(){ submit(parseInt(b.getAttribute('data-k'), 10)); });
+    });
+    document.getElementById('after').innerHTML = myChoice === null ? '' :
+      '<div class="done">已记录你的选择：<b>' + esc(meta.options[myChoice]) + '</b>' +
+      (locked ? '　（公网投票一台手机一次）' : '　点其他选项可以改票。') + '</div>';
+    document.getElementById('noteBox').innerHTML = (locked
+      ? '公网投票：一台手机投一次，投完不能修改。'
+      : '同一部手机可以改票（以最后一次为准）。投票截止后仍可查看结果。')
+      + (mode === 'cloud' ? '　<a href="javascript:window.__refresh&&window.__refresh()" style="color:var(--accent)">刷新</a>' : '');
+    document.getElementById('noteBox').style.display = 'block';
+  }else{
+    var b2 = '<div class="bars">';
+    meta.options.forEach(function(o, k){
+      var c = (st.counts && st.counts[k]) || 0, p = st.total ? Math.round(c / st.total * 100) : 0;
+      b2 += '<div class="bar"><span class="b" style="width:' + p + '%"></span>' +
+            '<span class="l">' + esc(o) + '<small>' + c + ' 票 · ' + p + '%</small></span></div>';
+    });
+    b2 += '</div>';
+    box.innerHTML = '';
+    document.getElementById('after').innerHTML =
+      '<div class="done">投票已截止，谢谢参与。' +
+      (myChoice !== null ? '　你选了 <b>' + esc(meta.options[myChoice]) + '</b>。' : '') + '</div>' + b2;
+    document.getElementById('noteBox').innerHTML = (mode === 'cloud'
+      ? '<a href="javascript:window.__refresh&&window.__refresh()" style="color:var(--accent)">刷新票数</a>' : '');
+    document.getElementById('noteBox').style.display = (mode === 'cloud') ? 'block' : 'none';
+  }
+}
+
+/* ---------- 提交 ---------- */
+function submit(k){
+  if(myChoice === k) return;
+  if(mode === 'cloud'){
+    if(myChoice !== null){
+      document.getElementById('foot').textContent = '公网投票一台手机一次，已记下你的选择';
+      return;
+    }
+    document.getElementById('foot').textContent = '正在提交…';
+    clHit(q + 'r' + cloudRound + 'abc'[k]).then(function(ok){
+      if(ok){
+        saveMyChoice(k); render();
+        document.getElementById('foot').textContent = '投票成功 · 正在等大屏统计';
+      }else{
+        document.getElementById('foot').textContent = '提交失败：公网计票没响应，请改用举手';
+      }
+    });
+    return;
+  }
+  api('/api/vote', { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ q:q, choice:k, cid:cid() }) })
+    .then(function(j){
+      if(j.ok){
+        saveMyChoice(k); render();
+        document.getElementById('foot').textContent = '投票成功 · 可改票（以最后一次为准）';
+      }else if(j.error === 'closed'){
+        document.getElementById('foot').textContent = '投票刚刚被截止了';
+        pull();
+      }else{
+        document.getElementById('foot').textContent = '提交失败，请再试一次';
+      }
+    })
+    .catch(function(){ document.getElementById('foot').textContent = '网络异常，请刷新页面重试'; });
+}
+
+/* ---------- 轮询：间隔随模式/阶段变，尽量少打扰免费服务 ---------- */
+var pollTimer = null, pollMs = 0;
+function setPollMs(ms){
+  if(ms === pollMs) return;
+  pollMs = ms;
+  if(pollTimer){ clearInterval(pollTimer); pollTimer = null; }
+  if(ms > 0) pollTimer = setInterval(pull, ms);
+}
+function retune(){
+  /* 公网模式的计数器服务有限流：不自动轮询，只在打开时读一次，之后手动刷新 */
+  if(mode === 'cloud') setPollMs(0);
+  else setPollMs(2000);
+}
+function loop(){
+  if(pollMs <= 0) return;
+  pull().then(retune, retune);
+  setTimeout(loop, pollMs);
+}
+function start(){
+  pull().then(retune, retune);
+  setTimeout(function(){ pull().then(retune, retune); }, 900);
+  setTimeout(loop, 2500);
+  window.__refresh = function(){ pull().then(retune, retune); };   /* 手动刷新入口 */
+}
+start();
+document.addEventListener('visibilitychange', function(){ if(!document.hidden) pull().then(retune, retune); });
+</script>
+</body>
+</html>
