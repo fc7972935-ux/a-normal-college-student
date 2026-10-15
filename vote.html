@@ -78,7 +78,7 @@ body{
    公网模式为了省请求：投票开放期间只读「开关」两个键，截止后才把票数读全，
    截止后只偶尔复查一次（防止中途重新开放）。
    ============================================================ */
-var CLOUD = { base:'https://abacus.jasoncameron.dev', ns:'' };   /* ns 由「发布公网版.py」写入 */
+var CLOUD = { base:'https://abacus.jasoncameron.dev', ns:'ewclass-0ae846bd' };   /* 默认命名空间；二维码里会带 ns 覆盖它 */
 var POLLS = {
   q1:{ title:'不摧毁无人机，能否让它无法完成任务？', hint:'请扫码或举手选择', options:['能','不能','不确定'] },
   q2:{ title:'未来更关键的是更大的功率，还是更快的决策？', hint:'请扫码或举手选择', options:['更大的功率','更快的决策','两者都关键'] }
@@ -140,6 +140,12 @@ function clGet(key){
   return fetch(clUrl('get', key), {cache:'no-store'})
     .then(function(r){ return r.text(); })
     .then(clParse);
+}
+/* 轮次：大屏按 N 开新一轮时 'rnd' +1。手机页每次打开 / 回到页面 / 提交前都对齐一次，
+   否则票会一直落进 R0，而大屏已经在读 R1 —— 观众投了却统计不到。 */
+function syncRound(){
+  if(!CLOUD.ns) return Promise.resolve();
+  return clGet('rnd').then(function(v){ cloudRound = v || 0; }).catch(function(){});
 }
 /* 投票是"不能丢"的操作：遇到限流/抖动重试几次再放弃 */
 function clHit(key, tries){
@@ -262,7 +268,7 @@ function submit(k){
       return;
     }
     document.getElementById('foot').textContent = '正在提交…';
-    clHit(q + 'r' + cloudRound + 'abc'[k]).then(function(ok){
+    syncRound().then(function(){ return clHit(q + 'r' + cloudRound + 'abc'[k]); }).then(function(ok){
       if(ok){
         saveMyChoice(k); render();
         document.getElementById('foot').textContent = '投票成功 · 正在等大屏统计';
@@ -307,13 +313,20 @@ function loop(){
   setTimeout(loop, pollMs);
 }
 function start(){
-  pull().then(retune, retune);
+  /* 先把题目和选项画出来：题目是本地的，任何网络状态下都不该白屏 */
+  meta = POLLS[q] || POLLS.q1;
+  finalState = { open:true, counts:[0,0,0], total:0, meta:meta };
+  render();
+  syncRound().then(function(){ pull().then(retune, retune); }, function(){ pull().then(retune, retune); });
   setTimeout(function(){ pull().then(retune, retune); }, 900);
   setTimeout(loop, 2500);
   window.__refresh = function(){ pull().then(retune, retune); };   /* 手动刷新入口 */
 }
 start();
-document.addEventListener('visibilitychange', function(){ if(!document.hidden) pull().then(retune, retune); });
+document.addEventListener('visibilitychange', function(){
+  if(document.hidden) return;
+  syncRound().then(function(){ pull().then(retune, retune); }, function(){ pull().then(retune, retune); });
+});
 </script>
 </body>
 </html>

@@ -3349,7 +3349,7 @@ function mountVote(box){
     h += '<div class="vqr__cap">'+(cloud?'扫码投票 · 手机任何网络都能投，电脑关机后也能打开':'扫码投票 · 手机与电脑同一 WiFi')+'</div>';
     h += '<div class="vqr__url">'+voteUrl+'</div>';
     h += '<div class="vqr__tip">'+(cloud
-      ? '公网模式 · 按 <b>M</b> 可切回本地/举手模式'
+      ? '公网模式 · 按 <b>N</b> 开新一轮（票数归零）· 按 <b>M</b> 可切回本地/举手模式'
       : ('地址不对？按 <b>A</b> 切换可用地址'+(cands.length>1?('（共 '+cands.length+' 个）'):'')))
       +'</div>';
   }
@@ -3517,6 +3517,21 @@ document.addEventListener('keydown', function(e){
       else if(vid){ goChapter(CH_SANDBOX); toast('已跳到沙盘章节'); }
       break;
     case 'm': case 'M': cycleMode(); break;
+    case 'n': case 'N': {
+      if(app.mode !== 'cloud'){ toast('只有公网模式能开新一轮（先按 M 切到公网）'); break; }
+      clHit('rnd').then(function(ok){
+        if(!ok) return null;
+        return clGet('rnd');
+      }).then(function(v){
+        if(v === null || v === undefined){ toast('开新一轮失败：公网计数没响应'); return; }
+        app.cloud.round = v || 0;
+        app.cloud.state = {};                     /* 丢掉旧一轮的票数缓存 */
+        cloudRefresh();
+        document.querySelectorAll('.votebox').forEach(function(el){ mountVote(el); });
+        toast('已开新一轮 R' + app.cloud.round + '：票数从 0 开始，观众刷新页面即可再投');
+      }).catch(function(){ toast('开新一轮失败：公网计数没响应'); });
+      break;
+    }
     case 's': case 'S': if(vid && app.chapter === CH_SANDBOX) pauseVideo(true); break;
     case ',': if(vid && app.chapter === CH_SANDBOX){ vid.currentTime = Math.max(0, vid.currentTime - 5); vidUI(); } break;
     case '.': if(vid && app.chapter === CH_SANDBOX){ vid.currentTime = Math.min(vid.duration || 68, vid.currentTime + 5); vidUI(); } break;
@@ -3528,7 +3543,7 @@ document.addEventListener('keydown', function(e){
       if(!document.fullscreenElement) document.documentElement.requestFullscreen().catch(function(){}); 
       else document.exitFullscreen();
       break;
-    case '?': toast('→/空格 下一步 · ← 上一步 · [ ] 上/下一章 · J 解锁目录 · P 视频 · O/C 投票 · M 切投票模式 · F 全屏 · R 重讲本节'); break;
+    case '?': toast('→/空格 下一步 · ← 上一步 · [ ] 上/下一章 · J 解锁目录 · P 视频 · O/C 投票 · M 切投票模式 · N 开新一轮 · F 全屏 · R 重讲本节'); break;
   }
 });
 function jumpChapter(d){
