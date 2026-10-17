@@ -80,8 +80,8 @@ body{
    ============================================================ */
 var CLOUD = { base:'https://abacus.jasoncameron.dev', ns:'ewclass-0ae846bd' };   /* 默认命名空间；二维码里会带 ns 覆盖它 */
 var POLLS = {
-  q1:{ title:'不摧毁无人机，能否让它无法完成任务？', hint:'请扫码或举手选择', options:['能','不能','不确定'] },
-  q2:{ title:'未来更关键的是更大的功率，还是更快的决策？', hint:'请扫码或举手选择', options:['更大的功率','更快的决策','两者都关键'] }
+  q1:{ title:'不摧毁无人机，能否让它无法完成任务？', hint:'请扫码或举手选择', options:['能','不能'] },
+  q2:{ title:'未来更关键的是更大的功率，还是更快的决策？', hint:'留给同学思考（不投票）', options:['更大的功率','更快的决策'] }
 };
 var q = (location.search.match(/[?&]q=(q[12])/) || [, 'q1'])[1];
 var nsUrl = (location.search.match(/[?&]ns=([^&]+)/) || [])[1];
@@ -167,7 +167,8 @@ function cloudOpenState(oc){
 }
 function cloudPullCounts(){
   var p = 'r' + cloudRound;
-  return Promise.all([q+p+'a', q+p+'b', q+p+'c'].map(clGet)).then(function(c){
+  var meta0 = POLLS[q] || POLLS.q1;
+  return Promise.all([q+p+'a', q+p+'b', q+p+'c'].slice(0, meta0.options.length).map(clGet)).then(function(c){
     myChoice = readMyChoice();
     meta = POLLS[q];
     var total = c[0]+c[1]+c[2];

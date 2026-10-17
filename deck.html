@@ -2732,7 +2732,7 @@ var qrcode = function() {
    ============================================================ */
 var CHAPTERS = [
 {n:'01', name:'看不见的战场', beats:[
-  {col:'1/13', html:'<div class="k-label">第一版专业方案 · 01 开场</div>\
+  {col:'1/13', html:'<div class="k-label">01 开场</div>\
     <h1 class="k-title">看不见的战场</h1>'},
   {col:'1/13', html:'<p class="k-sub" style="font-size:28px;color:var(--ink)">电子战原理与红蓝沙盘对抗</p>\
     <p class="k-sub">从信号截获、参数估计到干扰与抗干扰</p>'},
@@ -2745,11 +2745,10 @@ var CHAPTERS = [
 {n:'02', name:'开场投票：能否让它完不成任务？', beats:[
   {col:'1/13', html:'<div class="k-label">开场互动 · 02</div>\
     <h1 class="k-title">不摧毁无人机，能否让它无法完成任务？</h1>'},
-  {col:'1/9', html:'<p class="k-sub">请举手选择：1 能　2 不能　3 不确定</p>\
-    <div class="grp" style="grid-template-columns:repeat(3,1fr);margin-top:18px">\
+  {col:'1/9', html:'<p class="k-sub">请举手选择：1 能　2 不能</p>\
+    <div class="grp" style="grid-template-columns:repeat(2,1fr);margin-top:18px">\
       <div class="card"><div class="card__h"><i>1</i>能</div><div class="card__b">不摧毁平台，也能让任务失败</div></div>\
       <div class="card"><div class="card__h"><i>2</i>不能</div><div class="card__b">必须摧毁或迫降才算成功</div></div>\
-      <div class="card"><div class="card__h"><i>3</i>不确定</div><div class="card__b">要看干扰的效果和持续时间</div></div>\
     </div>'},
   {col:'1/13', html:'<div class="votebox" data-vote="q1"></div>'},
   {col:'1/13', html:'<div class="note">判断依据：导航、通信和数据链一旦受扰，任务是否还能继续？</div>'}
@@ -2909,7 +2908,7 @@ var CHAPTERS = [
   {col:'1/13', html:'<div class="note">因此，评估电子战效果必须放回整个联合行动中判断。</div>'}
 ]},
 
-{n:'11', name:'信息优势 · 收尾投票', beats:[
+{n:'11', name:'信息优势 · 思考题', beats:[
   {col:'1/13', html:'<div class="k-label">信息优势 · 11</div>\
     <h1 class="k-title">未来争夺的是信息优势</h1>\
     <p class="k-sub">感知、决策、干扰和机动必须形成更快闭环</p>'},
@@ -2919,7 +2918,10 @@ var CHAPTERS = [
       <div class="flow__n"><b>决策</b><span>选择策略</span></div><div class="flow__a">›</div>\
       <div class="flow__n"><b>行动</b><span>干扰与机动</span></div><div class="flow__a">›</div>\
       <div class="flow__n"><b>再评估</b><span>闭环加速</span></div></div>'},
-  {col:'1/13', html:'<div class="votebox" data-vote="q2"></div>'},
+  {col:'1/13', html:'<div class="grp" style="grid-template-columns:1fr;margin-top:10px">\
+      <div class="card"><div class="card__h"><i>?</i>留给同学思考（不投票）</div>\
+      <div class="card__b"><ul><li>未来更关键的是更大的功率，还是更快的决策？</li>\
+      <li>两边都在进步时，决定胜负的到底是功率，还是决策速度？</li></ul></div></div></div>'},
   {col:'1/13', html:'<p class="k-sub" style="font-size:28px;color:var(--ink)">未来战争争夺的不只是火力，还有电磁频谱中的信息优势。</p>'},
   {col:'1/13', html:'<p class="fine" style="margin-top:8px">资料边界：公开电子战条令、雷达与通信教材、RUSI 与 CSIS 等公开分析；沙盘为教学示意，不对应具体战斗。</p>'}
 ]}
@@ -2929,8 +2931,8 @@ var CHAPTERS = [
    2) 投票配置（无服务时的本地副本；有服务时以服务端为准）
    ============================================================ */
 var POLLS = {
-  q1:{ title:'不摧毁无人机，能否让它无法完成任务？', hint:'请扫码或举手选择', options:['能','不能','不确定'] },
-  q2:{ title:'未来更关键的是更大的功率，还是更快的决策？', hint:'请扫码或举手选择', options:['更大的功率','更快的决策','两者都关键'] }
+  q1:{ title:'不摧毁无人机，能否让它无法完成任务？', hint:'请扫码或举手选择', options:['能','不能'] },
+  q2:{ title:'未来更关键的是更大的功率，还是更快的决策？', hint:'留给同学思考（不投票）', options:['更大的功率','更快的决策'] }
 };
 /* URL 参数：?api= 指定投票服务地址；?host= 指定二维码里写的地址；?reset=1 清进度 */
 var QS = {};
@@ -3342,14 +3344,14 @@ function mountVote(box){
   h += '<div class="vqr">';
   if(hand){
     h += '<div style="font-size:15px;line-height:1.85;color:var(--muted);border:1px dashed var(--line-hi);border-radius:var(--r-md);padding:20px;text-align:left">'+
-         '<b style="color:var(--accent)">举手计票模式</b><br>· 按 <b>1 / 2 / 3</b> 记录举手人数<br>· 按 <b>0</b> 清零本轮<br>'+
+         '<b style="color:var(--accent)">举手计票模式</b><br>· 按 <b>1 / 2</b> 记录举手人数<br>· 按 <b>0</b> 清零本轮<br>'+
          '· 按 <b>O</b> 开放 / <b>C</b> 截止<br><span style="font-size:12.5px;color:var(--muted-2)">（要手机扫码，请按 README 用本地服务地址打开）</span></div>';
   }else{
     h += '<div class="vqr__box" id="qr-'+qid+'"></div>';
     h += '<div class="vqr__cap">'+(cloud?'扫码投票 · 手机任何网络都能投，电脑关机后也能打开':'扫码投票 · 手机与电脑同一 WiFi')+'</div>';
     h += '<div class="vqr__url">'+voteUrl+'</div>';
     h += '<div class="vqr__tip">'+(cloud
-      ? '公网模式 · 按 <b>N</b> 开新一轮（票数归零）· 按 <b>M</b> 可切回本地/举手模式'
+      ? '公网模式 · 按 <b>N</b> 开新一轮（票数归零）· 按 <b>M</b> 可切回本地/举手模式（没网时在这两种模式下按 N 也能清零）'
       : ('地址不对？按 <b>A</b> 切换可用地址'+(cands.length>1?('（共 '+cands.length+' 个）'):'')))
       +'</div>';
   }
@@ -3445,9 +3447,10 @@ function cloudRefresh(){
     var keys = [clKey(qid,'a'), clKey(qid,'b'), clKey(qid,'c'), qid+'open', qid+'close'];
     Promise.all(keys.map(clGet)).then(function(v){
       if(app.mode !== 'cloud') return;
-      var counts = [v[0], v[1], v[2]];
+      var nopt = (POLLS[qid] ? POLLS[qid].options.length : 3);
+      var counts = [v[0], v[1], v[2]].slice(0, nopt);
       var open = (v[3] > v[4]) ? true : (v[4] > v[3] ? false : cloudDefaultOpen(qid));
-      app.cloud.state[qid] = { counts:counts, total:counts[0]+counts[1]+counts[2], open:open };
+      app.cloud.state[qid] = { counts:counts, total:counts.reduce(function(a,b){return a+b;},0), open:open };
       var box = document.querySelector('.votebox[data-vote="'+qid+'"]');
       if(box) mountVote(box);
     }).catch(function(){ /* 一次读不到就保持上一帧，不闪 */ });
@@ -3473,8 +3476,10 @@ document.addEventListener('keydown', function(e){
   var box = currentVoteBox();
   var qid = box ? box.getAttribute('data-vote') : null;
   /* 举手计票优先 */
-  if(app.mode === 'hand' && qid && k >= '1' && k <= '3'){
+  if(app.mode === 'hand' && qid && k >= '1' && k <= '9'){
     var st = handState(qid), idx = parseInt(k,10)-1;
+    var nopt = (POLLS[qid] ? POLLS[qid].options.length : 3);
+    if(idx >= nopt) return;                       /* 没有这个选项 */
     st.counts[idx]++; st.total++; mountVote(box); e.preventDefault(); return;
   }
   if(app.mode === 'hand' && qid && k === '0'){
@@ -3518,18 +3523,33 @@ document.addEventListener('keydown', function(e){
       break;
     case 'm': case 'M': cycleMode(); break;
     case 'n': case 'N': {
-      if(app.mode !== 'cloud'){ toast('只有公网模式能开新一轮（先按 M 切到公网）'); break; }
-      clHit('rnd').then(function(ok){
-        if(!ok) return null;
-        return clGet('rnd');
-      }).then(function(v){
-        if(v === null || v === undefined){ toast('开新一轮失败：公网计数没响应'); return; }
-        app.cloud.round = v || 0;
-        app.cloud.state = {};                     /* 丢掉旧一轮的票数缓存 */
-        cloudRefresh();
-        document.querySelectorAll('.votebox').forEach(function(el){ mountVote(el); });
-        toast('已开新一轮 R' + app.cloud.round + '：票数从 0 开始，观众刷新页面即可再投');
-      }).catch(function(){ toast('开新一轮失败：公网计数没响应'); });
+      /* 三种模式都能"重置"：仅公网模式需要网 */
+      if(app.mode === 'cloud'){
+        clHit('rnd').then(function(ok){
+          if(!ok) return null;
+          return clGet('rnd');
+        }).then(function(v){
+          if(v === null || v === undefined){
+            toast('公网无响应 · 没网时按 M 切到本地/举手模式，N 键一样能清零'); return;
+          }
+          app.cloud.round = v || 0;
+          app.cloud.state = {};                     /* 丢掉旧一轮的票数缓存 */
+          cloudRefresh();
+          document.querySelectorAll('.votebox').forEach(function(el){ mountVote(el); });
+          toast('已开新一轮 R' + app.cloud.round + '：票数从 0 开始，观众刷新页面即可再投');
+        }).catch(function(){ toast('公网无响应 · 没网时按 M 切到本地/举手模式，N 键一样能清零'); });
+        break;
+      }
+      if(app.mode === 'lan'){
+        fetch(API_URL + '/api/reset', {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'})
+          .then(function(r){ return r.json(); })
+          .then(function(j){ app.state = j; refreshVotes(); toast('本地票数已清零（两题都清）· 不需要外网'); })
+          .catch(function(){ toast('本地服务没响应：确认这台电脑上的 serve.py 还在运行'); });
+        break;
+      }
+      app.hand = {};                              /* 举手模式：完全离线清零 */
+      refreshVotes();
+      toast('举手计票已清零（离线可用）');
       break;
     }
     case 's': case 'S': if(vid && app.chapter === CH_SANDBOX) pauseVideo(true); break;
@@ -3543,7 +3563,7 @@ document.addEventListener('keydown', function(e){
       if(!document.fullscreenElement) document.documentElement.requestFullscreen().catch(function(){}); 
       else document.exitFullscreen();
       break;
-    case '?': toast('→/空格 下一步 · ← 上一步 · [ ] 上/下一章 · J 解锁目录 · P 视频 · O/C 投票 · M 切投票模式 · N 开新一轮 · F 全屏 · R 重讲本节'); break;
+    case '?': toast('→/空格 下一步 · ← 上一步 · [ ] 上/下一章 · J 解锁目录 · P 视频 · O/C 投票 · M 切投票模式 · N 开新一轮/清零 · F 全屏 · R 重讲本节'); break;
   }
 });
 function jumpChapter(d){
